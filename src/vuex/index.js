@@ -7,42 +7,42 @@ let _vue = null;
 class Store {
   _subscribeCache = []
   _subscribeActionCache = []
-  _makeLocalGettersCache = Object.create(null, { enumerable: true })
+  _makeLocalGettersCache = Object.create(null)
 
   constructor(options) {
     this.options = options;
-    this.optionsSplit();
+    this._optionsSplit();
     this._initStore();
-    const _commit = this._commit;
-    const _dispatch = this._dispatch;
     this._watchVM = new _vue();
-
-    this.commit = (key, payload) => {
-      _commit.call(this, key, payload);
-    };
-
-    this.dispatch = (key, payload) => {
-      return Promise.resolve(_dispatch.call(this, key, payload));
-    };
-
-    this.subscribe = fn => {
-      return this._subscribe(fn);
-    };
-
-    this.subscribeAction = fn => {
-      return this._subscribeAction(fn);
-    }
   }
 
   get state() {
     return this._state;
   }
 
-  // watch(getters, cb, _options) {
-  //   this._watchVM.$watch(() => {
-  //     return getters(this.state, this.getters)
-  //   }, cb, _options)
-  // }
+  dispatch = (key, payload) => {
+    return Promise.resolve(this._dispatch(key, payload));
+  }
+
+  commit = (key, payload) => {
+    this._commit(key, payload);
+  }
+
+  subscribe(fn) {
+    return this._subscribe(fn);
+  }
+
+  subscribeAction(fn) {
+    return this._subscribeAction(fn);
+  }
+
+  watch(fn, cb, options) {
+    return this._watch(fn, cb, options);
+  }
+
+  _watch(fn, cb, options) {
+    this._watchVM.$watch(() => fn(this.state, this.getters), cb, options);
+  }
 
   _initStore() {
     // 判断有没有_modules,如果有的将_modules解构
@@ -52,8 +52,8 @@ class Store {
     if (isHasModules(this._modules)) {
       modulesStateDeconstruct(stateMap, this._modules, 'state');
     }
-    this.getters = {};
-    const computed = {};
+    this.getters = Object.create(null);
+    const computed = Object.create(null);
     Object.keys(this._getters).forEach(key => {
       computed[key] = () => {
         return this._getters[key]();
@@ -91,7 +91,7 @@ class Store {
     if (typeof fn === 'function') {
       fn(payload);
       this._subscribeCache.forEach(fn => {
-        fn({ type: key, payload}, this.state);
+        fn({ type: key, payload }, this.state);
       })
     }
   }
@@ -111,7 +111,7 @@ class Store {
       const result = Promise.resolve(fn(payload));
       result.then(() => {
         this._subscribeActionCache.forEach(fn => {
-          fn({type: key, payload}, this.state);
+          fn({ type: key, payload }, this.state);
         })
       })
       return result;
@@ -132,7 +132,7 @@ class Store {
     }
   }
 
-  optionsSplit() {
+  _optionsSplit() {
     this._modules = this.options['modules'];
     // 初始化时为每一个 mutations actions 绑定对应的commit方法和dispatch方法
     this._mutations = extendMoudle(this.options['mutations'], this._modules, 'mutations', this);
@@ -147,7 +147,7 @@ class Store {
  * @param {object} state Observe对象
  */
 function makeRootState(rootStateMap, state) {
-  const rootStateProxy = Object.create(null, {enumerable: true});
+  const rootStateProxy = Object.create(null);
   Object.keys(state).forEach(key => {
     const rootStateArray = Object.keys(rootStateMap);
     if (rootStateArray.includes(key)) {
@@ -167,7 +167,7 @@ function makeRootState(rootStateMap, state) {
  * @param {*} vm vue实例
  */
 function makeRootGetters(rootGettersMap, vm) {
-  const rootGettersProxy = Object.create(null, {enumerable: true});
+  const rootGettersProxy = Object.create(null);
   Object.keys(rootGettersMap).forEach(getterKey => {
     Object.defineProperty(rootGettersProxy, getterKey, {
       get: () => vm[getterKey],
@@ -183,7 +183,7 @@ function makeRootGetters(rootGettersMap, vm) {
  * 将参数统一处理为对象
  */
 function normalizeParams(params) {
-  let res = Object.create(null, {enumerable: true});
+  let res = Object.create(null);
   if (Array.isArray(params)) {
     params.forEach(key => {
       res[key] = key;
@@ -206,7 +206,7 @@ function normalizeNamespace(fn) {
 }
 
 function makeLocalGetters(namespace, store) {
-  const local = Object.create(null, {enumerable: true})
+  const local = Object.create(null)
   Object.defineProperty(local, 'getters', {
     get: function () {
       return makeLocalGetter(namespace, store)
@@ -218,7 +218,7 @@ function makeLocalGetters(namespace, store) {
 }
 function makeLocalGetter(namespace, store) {
   if (!store._makeLocalGettersCache[namespace]) {
-    const gettersProxy = Object.create(null, {enumerable: true});
+    const gettersProxy = Object.create(null);
     const splitPos = namespace.length;
     Object.keys(store.getters).forEach(function (type) {
       if (type.slice(0, splitPos) !== namespace) { return }
@@ -242,7 +242,7 @@ function extendGetters(rootGetters, moudles, store) {
 }
 
 function wrapperGetters(moudles, store) {
-  const res = Object.create(null, {enumerable: true});
+  const res = Object.create(null);
   Object.keys(moudles).forEach(nameSpace => {
     if (typeof moudles[nameSpace] === 'object') {
       const { namespaced } = moudles[nameSpace];
@@ -298,7 +298,7 @@ function extendMoudle(sourceObj, modules, type, store) {
 }
 
 function deconstructMoudles(modules, type, store) {
-  let res = Object.create(null, {enumerable: true});
+  let res = Object.create(null);
   // 返回的对象上应该有path 对应的触发方法
   Object.keys(modules).forEach(key => {
     if (typeof modules[key] === 'object') {
@@ -359,7 +359,7 @@ function wrapperCommitDispatch(fun /**发的原方法 */, spaceName, store, type
   if (type === 'actions') {
     return Promise.resolve(fun.call(store, params, payload));
   } else {
-    fun.call(store,  isRoot ? store.state : store.state[spaceName], payload);
+    fun.call(store, isRoot ? store.state : store.state[spaceName], payload);
   }
 }
 
@@ -394,7 +394,7 @@ function splitObject(type, payload) {
  */
 const mapGetters = normalizeNamespace(function (nameSpace, getters) {
   getters = normalizeParams(getters);
-  const res = Object.create(null, {enumerable: true});
+  const res = Object.create(null);
   const isRoot = nameSpace === ''
   Object.keys(getters).forEach(key => {
     res[key] = function () {
@@ -408,9 +408,9 @@ const mapGetters = normalizeNamespace(function (nameSpace, getters) {
 /**
  * state Array | Object { key: state } | Objct { key： function }
  */
-const mapState = normalizeNamespace(function(nameSpace, state) {
+const mapState = normalizeNamespace(function (nameSpace, state) {
   state = normalizeParams(state);
-  const res = Object.create(null, {enumerable: true});
+  const res = Object.create(null);
   const isRoot = nameSpace === '';
   Object.keys(state).forEach(stateKey => {
     res[stateKey] = function () {
@@ -435,10 +435,10 @@ const mapState = normalizeNamespace(function(nameSpace, state) {
 /**
  * mapActions(namespace?: string, map: Array<string> | Object<string | function>): Object
  */
-const mapActions = normalizeNamespace(function(nameSpace, actions) {
+const mapActions = normalizeNamespace(function (nameSpace, actions) {
   actions = normalizeParams(actions);
   const isRoot = nameSpace === '';
-  const res  = Object.create(null, {enumerable: true});
+  const res = Object.create(null);
   Object.keys(actions).forEach(actionsKey => {
     res[actionsKey] = function (payload) {
       if (typeof actions[actionsKey] === 'function') {
@@ -457,13 +457,13 @@ const mapActions = normalizeNamespace(function(nameSpace, actions) {
 /**
  * mapMutations(namespace?: string, map: Array<string> | Object<string | function>): Object
  */
-const mapMutations = normalizeNamespace(function(nameSpace, mutations) {
+const mapMutations = normalizeNamespace(function (nameSpace, mutations) {
   mutations = normalizeParams(mutations);
   const isRoot = nameSpace === '';
-  const res  = Object.create(null, {enumerable: true});
+  const res = Object.create(null);
   Object.keys(mutations).forEach(mutationsKey => {
     res[mutationsKey] = function (payload) {
-      if (typeof  mutations[mutationsKey] === 'function') {
+      if (typeof mutations[mutationsKey] === 'function') {
         return mutations[mutationsKey](this.$store.commit);
       } else {
         const Key = isRoot ? mutations[mutationsKey] : `${nameSpace}/${mutations[mutationsKey]}`;
@@ -479,12 +479,12 @@ const mapMutations = normalizeNamespace(function(nameSpace, mutations) {
  * 
  * @param {String} nameSpace 
  */
-const createNamespacedHelpers = function(nameSpace) {
+const createNamespacedHelpers = function (nameSpace) {
   mapMutations.bind(null, nameSpace);
   mapActions.bind(null, nameSpace);
   mapGetters.bind(null, nameSpace);
   mapState.bind(null, nameSpace);
-  return {mapState, mapGetters, mapActions, mapMutations};
+  return { mapState, mapGetters, mapActions, mapMutations };
 };
 
 const install = (vue) => {
