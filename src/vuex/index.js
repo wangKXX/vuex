@@ -389,20 +389,6 @@ function splitObject(type, payload) {
   return { type: type, payload: payload }
 }
 
-const install = (vue) => {
-  _vue = vue;
-  _vue.mixin({ beforeCreate: vuexInit })
-}
-
-function vuexInit() {
-  const options = this.$options;
-  if (options.store) { // 根组件
-    this.$store = options.store
-  } else if (options.parent && options.parent.$store) {
-    this.$store = options.parent.$store;
-  }
-}
-
 /**
  * getters Array | Object { key: state }
  */
@@ -500,6 +486,20 @@ const createNamespacedHelpers = function(nameSpace) {
   mapState.bind(null, nameSpace);
   return {mapState, mapGetters, mapActions, mapMutations};
 };
+
+const install = (vue) => {
+  _vue = vue;
+  _vue.mixin({ beforeCreate: vuexInit })
+}
+
+function vuexInit() {
+  const options = this.$options;
+  if (options.store) { // 根组件
+    this.$store = options.store
+  } else if (options.parent && options.parent.$store) {
+    this.$store = options.parent.$store;
+  }
+}
 
 module.exports = {
   Store,
