@@ -195,6 +195,10 @@ function normalizeParams(params) {
   return res;
 }
 
+/**
+ * 
+ * @param {function} fn
+ */
 function normalizeNamespace(fn) {
   return function (nameSpace, getters) {
     if (typeof nameSpace !== 'string') {
@@ -205,6 +209,11 @@ function normalizeNamespace(fn) {
   }
 }
 
+/**
+ * 
+ * @param {string} namespace 
+ * @param {Store} store 
+ */
 function makeLocalGetters(namespace, store) {
   const local = Object.create(null)
   Object.defineProperty(local, 'getters', {
@@ -216,6 +225,12 @@ function makeLocalGetters(namespace, store) {
 
   return local;
 }
+
+/**
+ * 
+ * @param {string} namespace 
+ * @param {Store} store 
+ */
 function makeLocalGetter(namespace, store) {
   if (!store._makeLocalGettersCache[namespace]) {
     const gettersProxy = Object.create(null);
@@ -233,7 +248,12 @@ function makeLocalGetter(namespace, store) {
   return store._makeLocalGettersCache[namespace]
 }
 
-// getters处理
+/**
+ * 
+ * @param {objct} rootGetters 
+ * @param {object} moudles 
+ * @param {Store} store 
+ */
 function extendGetters(rootGetters, moudles, store) {
   return {
     ...wrapperGetters(rootGetters, store),
@@ -241,6 +261,11 @@ function extendGetters(rootGetters, moudles, store) {
   }
 }
 
+/**
+ * 
+ * @param {object} moudles 
+ * @param {Store} store 
+ */
 function wrapperGetters(moudles, store) {
   const res = Object.create(null);
   Object.keys(moudles).forEach(nameSpace => {
@@ -264,6 +289,7 @@ function wrapperGetters(moudles, store) {
   })
   return res;
 }
+
 /**
  * 
  * @param {function} fn 最终执行的方法
@@ -273,7 +299,6 @@ function wrapperGetters(moudles, store) {
  */
 function wrapGettersFn(fn, nameSpace, store) {
   // 如果为根节点下接受两个参数 state getters 都为全局， 模块内接受四个参数 state, getters, rootState, rootGetters
-
   const isRoot = nameSpace === '';
   const local = isRoot ? '' : makeLocalGetters(nameSpace, store);
   const params = isRoot ? [
@@ -285,11 +310,17 @@ function wrapGettersFn(fn, nameSpace, store) {
       store.rootState,
       store.rootGetters
     ]
-  // isRoot || (params.splice(1, 1, getChildrenGetters(store.getters, nameSpace)));
   return fn.apply(store, [...params]);
 }
 
-// mutations, actions解构处理
+/**
+ * 
+ * @param {object} sourceObj 
+ * @param {object} modules 
+ * @param {string} type 
+ * @param {Store} store 
+ * mutations, actions解构处理
+ */
 function extendMoudle(sourceObj, modules, type, store) {
   return {
     ...deconstructMoudles(sourceObj, type, store),
@@ -297,8 +328,14 @@ function extendMoudle(sourceObj, modules, type, store) {
   };
 }
 
+/**
+ * 
+ * @param {object} modules 
+ * @param {string} type 
+ * @param {Store} store 
+ */
 function deconstructMoudles(modules, type, store) {
-  let res = Object.create(null);
+  const res = Object.create(null);
   // 返回的对象上应该有path 对应的触发方法
   Object.keys(modules).forEach(key => {
     if (typeof modules[key] === 'object') {
@@ -326,7 +363,15 @@ function deconstructMoudles(modules, type, store) {
   return res;
 }
 
-// 保存函数的执行上下文
+/**
+ * 
+ * @param {function} fun 
+ * @param {string} spaceName 
+ * @param {Store} store 
+ * @param {string} type 
+ * @param {string | array | object} payload 
+ * 保存函数的执行上下文
+ */
 function wrapperCommitDispatch(fun /**发的原方法 */, spaceName, store, type, payload) {
   const isRoot = spaceName === '';
   const dispatch = isRoot ? store.dispatch : function (_type, _payload, _options) {
@@ -363,6 +408,12 @@ function wrapperCommitDispatch(fun /**发的原方法 */, spaceName, store, type
   }
 }
 
+/**
+ * 
+ * @param {object} sourceObj 
+ * @param {object} modules 
+ * @param {string} type 
+ */
 function modulesStateDeconstruct(sourceObj, modules, type) {
   Object.keys(modules).forEach(item => {
     const { namespaced } = modules[item];
@@ -374,10 +425,19 @@ function modulesStateDeconstruct(sourceObj, modules, type) {
   });
 }
 
+/**
+ * 
+ * @param {object} modules 
+ */
 function isHasModules(modules) {
   return Object.keys(modules).length > 0;
 }
 
+/**
+ * 
+ * @param {string} type 
+ * @param {string | array | object} payload 
+ */
 function splitObject(type, payload) {
   if (typeof type === 'object' && type.type) {
     payload = type;
